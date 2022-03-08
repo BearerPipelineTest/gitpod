@@ -26,10 +26,17 @@ class GitpodProjectManager(
         private val project: Project
 ) {
 
+    init {
+        configureSdks()
+    }
+
     /**
      * It is a workaround for https://youtrack.jetbrains.com/issue/GTW-88
      */
-    init {
+    private fun configureSdks() {
+        if (application.isHeadlessEnvironment) {
+            return
+        }
         val pendingSdk = CompletableFuture<Sdk>()
         application.invokeLaterOnWriteThread {
             application.runWriteAction {

@@ -13,6 +13,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.remoteDev.util.onTerminationOrNow
+import com.intellij.util.application
 import com.jetbrains.rd.util.lifetime.Lifetime
 import git4idea.config.GitVcsApplicationSettings
 import io.gitpod.gitpodprotocol.api.GitpodClient
@@ -52,7 +53,11 @@ class GitpodManager : Disposable {
 
     val devMode = System.getenv("JB_DEV").toBoolean()
 
-    private val lifetime = Lifetime.Eternal.createNested()
+    private val lifetime = if (application.isHeadlessEnvironment) {
+        Lifetime.Terminated.createNested()
+    } else {
+        Lifetime.Eternal.createNested()
+    }
 
     override fun dispose() {
         lifetime.terminate()
@@ -60,6 +65,9 @@ class GitpodManager : Disposable {
 
     init {
         GlobalScope.launch {
+            if (application.isHeadlessEnvironment) {
+                return@launch
+            }
             try {
                 val backendPort = BuiltInServerManager.getInstance().waitForStart().port
                 val httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS)
@@ -93,6 +101,9 @@ class GitpodManager : Disposable {
 
     private val notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("Gitpod Notifications")
     private val notificationsJob = GlobalScope.launch {
+        if (application.isHeadlessEnvironment) {
+            return@launch
+        }
         val notifications = NotificationServiceGrpc.newStub(supervisorChannel)
         val futureNotifications = NotificationServiceGrpc.newFutureStub(supervisorChannel)
         while (isActive) {
@@ -156,6 +167,9 @@ class GitpodManager : Disposable {
 
     val pendingInfo = CompletableFuture<WorkspaceInfoResponse>()
     private val infoJob = GlobalScope.launch {
+        if (application.isHeadlessEnvironment) {
+            return@launch
+        }
         try {
             // TODO(ak) replace retry with proper handling of grpc errors
             val infoResponse = retry(3) {
