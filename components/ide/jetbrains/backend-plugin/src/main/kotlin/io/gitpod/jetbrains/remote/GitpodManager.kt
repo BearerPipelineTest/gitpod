@@ -19,6 +19,7 @@ import git4idea.config.GitVcsApplicationSettings
 import io.gitpod.gitpodprotocol.api.GitpodClient
 import io.gitpod.gitpodprotocol.api.GitpodServerLauncher
 import io.gitpod.jetbrains.remote.services.HeartbeatService
+import io.gitpod.jetbrains.remote.utils.Retrier.retry
 import io.gitpod.supervisor.api.*
 import io.gitpod.supervisor.api.Info.WorkspaceInfoResponse
 import io.gitpod.supervisor.api.Notification.*
@@ -41,7 +42,6 @@ import java.time.Duration
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import javax.websocket.DeploymentException
-import io.gitpod.jetbrains.remote.utils.Retrier.retry
 
 @Service
 class GitpodManager : Disposable {
@@ -53,11 +53,7 @@ class GitpodManager : Disposable {
 
     val devMode = System.getenv("JB_DEV").toBoolean()
 
-    private val lifetime = if (application.isHeadlessEnvironment) {
-        Lifetime.Terminated.createNested()
-    } else {
-        Lifetime.Eternal.createNested()
-    }
+    private val lifetime = Lifetime.Eternal.createNested()
 
     override fun dispose() {
         lifetime.terminate()

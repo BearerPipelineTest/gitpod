@@ -5,18 +5,22 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
 	yaml "gopkg.in/yaml.v2"
@@ -35,7 +39,9 @@ var (
 	Version = ""
 )
 
-const RemoteDevServer = "/ide-desktop/backend/bin/remote-dev-server.sh"
+const BackendPath = "/ide-desktop/backend"
+const RemoteDevServer = BackendPath + "/bin/remote-dev-server.sh"
+const ProductInfoPath = BackendPath + "/product-info.json"
 
 // JB startup entrypoint
 func main() {
@@ -52,6 +58,12 @@ func main() {
 		label = os.Args[3]
 	}
 
+	backendVersion, err := resolveBackendVersion()
+	if err != nil {
+		log.WithError(err).Error("failed to resolve backend version")
+		return
+	}
+
 	// wait until content ready
 	contentStatus, wsInfo, err := resolveWorkspaceInfo(context.Background())
 	if err != nil || wsInfo == nil || contentStatus == nil || !contentStatus.Available {
@@ -60,12 +72,15 @@ func main() {
 	}
 	log.WithField("cost", time.Now().Local().Sub(startTime).Milliseconds()).Info("content available")
 
-	err = installPlugins(wsInfo)
-	installPluginsCost := time.Now().Local().Sub(startTime).Milliseconds()
-	if err != nil {
-		log.WithError(err).WithField("cost", installPluginsCost).Error("installing repo plugins: done")
-	} else {
-		log.WithField("cost", installPluginsCost).Info("installing repo plugins: done")
+	version_2022_1, _ := version.NewVersion("2022.1")
+	if version_2022_1.LessThanOrEqual(backendVersion) {
+		err = installPlugins(wsInfo)
+		installPluginsCost := time.Now().Local().Sub(startTime).Milliseconds()
+		if err != nil {
+			log.WithError(err).WithField("cost", installPluginsCost).Error("installing repo plugins: done")
+		} else {
+			log.WithField("cost", installPluginsCost).Info("installing repo plugins: done")
+		}
 	}
 
 	go run(wsInfo)
@@ -217,6 +232,48 @@ func run(wsInfo *supervisor.WorkspaceInfoResponse) {
 	os.Exit(cmd.ProcessState.ExitCode())
 }
 
+/**
+{
+  "buildNumber" : "221.4994.44",
+  "customProperties" : [ ],
+  "dataDirectoryName" : "IntelliJIdea2022.1",
+  "launch" : [ {
+    "javaExecutablePath" : "jbr/bin/java",
+    "launcherPath" : "bin/idea.sh",
+    "os" : "Linux",
+    "startupWmClass" : "jetbrains-idea",
+    "vmOptionsFilePath" : "bin/idea64.vmoptions"
+  } ],
+  "name" : "IntelliJ IDEA",
+  "productCode" : "IU",
+  "svgIconPath" : "bin/idea.svg",
+  "version" : "2022.1",
+  "versionSuffix" : "EAP"
+}
+*/
+type ProductInfo struct {
+	Version string `json:"version"`
+}
+
+func resolveBackendVersion() (*version.Version, error) {
+	f, err := os.Open(ProductInfoPath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	content, err := ioutil.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	var info ProductInfo
+	err = json.Unmarshal(content, &info)
+	if err != nil {
+		return nil, err
+	}
+	return version.NewVersion(info.Version)
+}
+
 func installPlugins(wsInfo *supervisor.WorkspaceInfoResponse) error {
 	plugins, err := getPlugins(wsInfo.GetCheckoutLocation())
 	if err != nil {
@@ -225,6 +282,18 @@ func installPlugins(wsInfo *supervisor.WorkspaceInfoResponse) error {
 	if len(plugins) <= 0 {
 		return nil
 	}
+	r, w, err := os.Pipe()
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	outC := make(chan string)
+	go func() {
+		var buf bytes.Buffer
+		_, _ = io.Copy(&buf, r)
+		outC <- buf.String()
+	}()
 
 	var args []string
 	args = append(args, "installPlugins")
@@ -232,10 +301,24 @@ func installPlugins(wsInfo *supervisor.WorkspaceInfoResponse) error {
 	args = append(args, plugins...)
 	cmd := exec.Command(RemoteDevServer, args...)
 	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	err = cmd.Run()
-	if err != nil {
-		return errors.New("failed to install repo plugins: " + err.Error())
+	cmd.Stdout = io.MultiWriter(w, os.Stdout)
+	installErr := cmd.Run()
+
+	// delete alien_plugins.txt to suppress 3rd-party plugins consent on startup to workaround backend startup freeze
+	w.Close()
+	out := <-outC
+	configR := regexp.MustCompile("IDE config directory: (\\S+)\n")
+	matches := configR.FindStringSubmatch(out)
+	if len(matches) == 2 {
+		configDir := matches[1]
+		err := os.Remove(configDir + "/alien_plugins.txt")
+		if err != nil {
+			log.WithError(err).Error("failed to suppress 3rd-party plugins consent")
+		}
+	}
+
+	if installErr != nil {
+		return errors.New("failed to install repo plugins: " + installErr.Error())
 	}
 	return nil
 }
