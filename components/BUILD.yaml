@@ -43,6 +43,7 @@ packages:
       - components/ide/code:docker
       - components/ide/jetbrains/image:goland
       - components/ide/jetbrains/image:intellij
+      - components/ide/jetbrains/image:intellij-latest
       - components/ide/jetbrains/image:phpstorm
       - components/ide/jetbrains/image:pycharm
       - components/image-builder-bob:docker

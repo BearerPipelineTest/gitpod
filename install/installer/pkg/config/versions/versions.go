@@ -45,6 +45,7 @@ type Components struct {
 			CodeDesktopImage         Versioned `json:"codeDesktop"`
 			CodeDesktopImageInsiders Versioned `json:"codeDesktopInsiders"`
 			IntelliJImage            Versioned `json:"intellij"`
+			IntelliJLatestImage      Versioned `json:"intellijLatest"`
 			GoLandImage              Versioned `json:"goland"`
 			PyCharmImage             Versioned `json:"pycharm"`
 			PhpStormImage            Versioned `json:"phpstorm"`

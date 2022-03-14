@@ -92,12 +92,13 @@ func configmap(ctx *common.RenderContext) ([]runtime.Object, error) {
 					Image:    common.ImageName(ctx.Config.Repository, ide.CodeDesktopInsidersIDEImage, ctx.VersionManifest.Components.Workspace.DesktopIdeImages.CodeDesktopImageInsiders.Version),
 				},
 				intellij: {
-					OrderKey:    pointer.String("04"),
-					Title:       "IntelliJ IDEA",
-					Type:        typeDesktop,
-					Logo:        getIdeLogoPath("intellijIdeaLogo"),
-					Image:       common.ImageName(ctx.Config.Repository, ide.IntelliJDesktopIDEImage, ctx.VersionManifest.Components.Workspace.DesktopIdeImages.IntelliJImage.Version),
-					LatestImage: common.ImageName(ctx.Config.Repository, ide.IntelliJDesktopIDEImage, "latest"),
+					OrderKey: pointer.String("04"),
+					Title:    "IntelliJ IDEA",
+					Type:     typeDesktop,
+					Logo:     getIdeLogoPath("intellijIdeaLogo"),
+					Image:    common.ImageName(ctx.Config.Repository, ide.IntelliJDesktopIDEImage, ctx.VersionManifest.Components.Workspace.DesktopIdeImages.IntelliJImage.Version),
+					// TODO(ak) "latest" in production, concrete only in preview envs
+					LatestImage: common.ImageName(ctx.Config.Repository, ide.IntelliJLatestDesktopIDEImage, ctx.VersionManifest.Components.Workspace.DesktopIdeImages.IntelliJLatestImage.Version),
 				},
 				goland: {
 					OrderKey:    pointer.String("05"),
