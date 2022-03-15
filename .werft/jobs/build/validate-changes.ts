@@ -6,7 +6,7 @@ export async function validateChanges(werft: Werft, config: JobConfig) {
     werft.phase('validate-changes', 'validating changes');
     try {
         branchNameCheck(werft, config)
-        preCommitCheck(werft)
+        // preCommitCheck(werft)
     } catch (err) {
         werft.fail('validate-changes', err);
     }
@@ -31,12 +31,12 @@ async function branchNameCheck(werft: Werft, config: JobConfig) {
     }
 }
 
-async function preCommitCheck(werft: Werft) {
-    werft.log("pre-commit checks", "Running pre-commit hooks.")
-    const preCommitCmd = exec(`pre-commit run --show-diff-on-failure`, { slice: "pre-commit checks" });
+// async function preCommitCheck(werft: Werft) {
+//     werft.log("pre-commit checks", "Running pre-commit hooks.")
+//     const preCommitCmd = exec(`pre-commit run --show-diff-on-failure`, { slice: "pre-commit checks" });
 
-    if (preCommitCmd.code != 0) {
-        throw new Error(preCommitCmd.stderr.toString().trim())
-    }
-    werft.done("pre-commit checks")
-}
+//     if (preCommitCmd.code != 0) {
+//         throw new Error(preCommitCmd.stderr.toString().trim())
+//     }
+//     werft.done("pre-commit checks")
+// }

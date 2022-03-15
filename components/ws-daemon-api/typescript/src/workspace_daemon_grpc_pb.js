@@ -76,6 +76,28 @@ function deserialize_iws_PrepareForUserNSResponse(buffer_arg) {
   return workspace_daemon_pb.PrepareForUserNSResponse.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
+function serialize_iws_SetupPairVethRequest(arg) {
+  if (!(arg instanceof workspace_daemon_pb.SetupPairVethRequest)) {
+    throw new Error('Expected argument of type iws.SetupPairVethRequest');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_iws_SetupPairVethRequest(buffer_arg) {
+  return workspace_daemon_pb.SetupPairVethRequest.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
+function serialize_iws_SetupPairVethResponse(arg) {
+  if (!(arg instanceof workspace_daemon_pb.SetupPairVethResponse)) {
+    throw new Error('Expected argument of type iws.SetupPairVethResponse');
+  }
+  return Buffer.from(arg.serializeBinary());
+}
+
+function deserialize_iws_SetupPairVethResponse(buffer_arg) {
+  return workspace_daemon_pb.SetupPairVethResponse.deserializeBinary(new Uint8Array(buffer_arg));
+}
+
 function serialize_iws_TeardownRequest(arg) {
   if (!(arg instanceof workspace_daemon_pb.TeardownRequest)) {
     throw new Error('Expected argument of type iws.TeardownRequest');
@@ -256,6 +278,17 @@ teardown: {
     requestDeserialize: deserialize_iws_TeardownRequest,
     responseSerialize: serialize_iws_TeardownResponse,
     responseDeserialize: deserialize_iws_TeardownResponse,
+  },
+  setupPairVeth: {
+    path: '/iws.InWorkspaceService/SetupPairVeth',
+    requestStream: false,
+    responseStream: false,
+    requestType: workspace_daemon_pb.SetupPairVethRequest,
+    responseType: workspace_daemon_pb.SetupPairVethResponse,
+    requestSerialize: serialize_iws_SetupPairVethRequest,
+    requestDeserialize: deserialize_iws_SetupPairVethRequest,
+    responseSerialize: serialize_iws_SetupPairVethResponse,
+    responseDeserialize: deserialize_iws_SetupPairVethResponse,
   },
 };
 

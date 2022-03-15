@@ -282,6 +282,43 @@ export namespace TeardownResponse {
     }
 }
 
+export class SetupPairVethRequest extends jspb.Message {
+    getPid(): number;
+    setPid(value: number): SetupPairVethRequest;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): SetupPairVethRequest.AsObject;
+    static toObject(includeInstance: boolean, msg: SetupPairVethRequest): SetupPairVethRequest.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: SetupPairVethRequest, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): SetupPairVethRequest;
+    static deserializeBinaryFromReader(message: SetupPairVethRequest, reader: jspb.BinaryReader): SetupPairVethRequest;
+}
+
+export namespace SetupPairVethRequest {
+    export type AsObject = {
+        pid: number,
+    }
+}
+
+export class SetupPairVethResponse extends jspb.Message {
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): SetupPairVethResponse.AsObject;
+    static toObject(includeInstance: boolean, msg: SetupPairVethResponse): SetupPairVethResponse.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: SetupPairVethResponse, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): SetupPairVethResponse;
+    static deserializeBinaryFromReader(message: SetupPairVethResponse, reader: jspb.BinaryReader): SetupPairVethResponse;
+}
+
+export namespace SetupPairVethResponse {
+    export type AsObject = {
+    }
+}
+
 export enum FSShiftMethod {
     SHIFTFS = 0,
     FUSE = 1,

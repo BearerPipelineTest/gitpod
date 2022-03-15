@@ -45,6 +45,8 @@ service InWorkspaceService {
     // Teardown prepares workspace content backups and unmounts shiftfs mounts. The canary is supposed to be triggered
     // when the workspace is about to shut down, e.g. using the PreStop hook of a Kubernetes container.
     rpc Teardown(TeardownRequest) returns (TeardownResponse) {}
+
+    rpc SetupPairVeth(SetupPairVethRequest) returns (SetupPairVethResponse) {}
 }
 
 message PrepareForUserNSRequest {}
@@ -97,3 +99,8 @@ message TeardownRequest {
 message TeardownResponse {
     bool success = 2;
 }
+
+message SetupPairVethRequest {
+    int64 pid = 2;
+}
+message SetupPairVethResponse {}

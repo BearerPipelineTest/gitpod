@@ -307,6 +307,40 @@ func (wbs *InWorkspaceServiceServer) PrepareForUserNS(ctx context.Context, req *
 	}, nil
 }
 
+func (wbs *InWorkspaceServiceServer) SetupPairVeth(ctx context.Context, req *api.SetupPairVethRequest) (*api.SetupPairVethResponse, error) {
+	rt := wbs.Uidmapper.Runtime
+	if rt == nil {
+		return nil, status.Errorf(codes.FailedPrecondition, "not connected to container runtime")
+	}
+	wscontainerID, err := rt.WaitForContainer(ctx, wbs.Session.InstanceID)
+	if err != nil {
+		log.WithError(err).WithFields(wbs.Session.OWI()).Error("SetupPairOfVeth: cannot find workspace container")
+		return nil, status.Errorf(codes.Internal, "cannot find workspace container")
+	}
+
+	containerPID, err := rt.ContainerPID(ctx, wscontainerID)
+	if err != nil {
+		log.WithError(err).WithFields(wbs.Session.OWI()).Error("SetupPairOfVeth: cannot find workspace container PID")
+		return nil, status.Errorf(codes.Internal, "cannot find workspace rootfs")
+	}
+
+	// procPID, err = wbs.Uidmapper.findHostPID(containerPID, uint64(req.Pid))
+	// if err != nil {
+	// 	return nil, xerrors.Errorf("cannot map in-container PID %d (container PID: %d): %w", req.Pid, containerPID, err)
+	// }
+
+	// setup-veth-pair
+	err = nsinsider(wbs.Session.InstanceID, int(containerPID), func(c *exec.Cmd) {
+		c.Args = append(c.Args, "setup-veth-pair", "--target-pid", strconv.Itoa(int(req.Pid)), "--name", wbs.Session.InstanceID)
+	}, enterMountNS(true), enterPidNS(true), enterNetNS(true))
+	if err != nil {
+		log.WithError(err).WithFields(wbs.Session.OWI()).Error("SetupPairOfVeth: cannot setup a veth pair")
+		return nil, status.Errorf(codes.Internal, "cannot setup a veth pair")
+	}
+
+	return &api.SetupPairVethResponse{}, nil
+}
+
 func evacuateToCGroup(ctx context.Context, mountpoint, oldGroup, child string) error {
 	newGroup := filepath.Join(oldGroup, child)
 	oldPath := filepath.Join(mountpoint, oldGroup)
@@ -767,7 +801,12 @@ func nsinsider(instanceID string, targetPid int, mod func(*exec.Cmd), opts ...ns
 	err = cmd.Run()
 	log.FromBuffer(&cmdOut, log.WithFields(log.OWI("", "", instanceID)))
 	if err != nil {
-		return xerrors.Errorf("cannot run nsinsider: %w", err)
+		out, err := cmd.CombinedOutput()
+		return xerrors.Errorf("run nsinsider (%v) failed: %q\n%v",
+			cmd.Args,
+			string(out),
+			err,
+		)
 	}
 	return nil
 }

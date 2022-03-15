@@ -22,6 +22,7 @@ interface IInWorkspaceServiceService extends grpc.ServiceDefinition<grpc.Untyped
     mountSysfs: IInWorkspaceServiceService_IMountSysfs;
     umountSysfs: IInWorkspaceServiceService_IUmountSysfs;
     teardown: IInWorkspaceServiceService_ITeardown;
+    setupPairVeth: IInWorkspaceServiceService_ISetupPairVeth;
 }
 
 interface IInWorkspaceServiceService_IPrepareForUserNS extends grpc.MethodDefinition<workspace_daemon_pb.PrepareForUserNSRequest, workspace_daemon_pb.PrepareForUserNSResponse> {
@@ -96,6 +97,15 @@ interface IInWorkspaceServiceService_ITeardown extends grpc.MethodDefinition<wor
     responseSerialize: grpc.serialize<workspace_daemon_pb.TeardownResponse>;
     responseDeserialize: grpc.deserialize<workspace_daemon_pb.TeardownResponse>;
 }
+interface IInWorkspaceServiceService_ISetupPairVeth extends grpc.MethodDefinition<workspace_daemon_pb.SetupPairVethRequest, workspace_daemon_pb.SetupPairVethResponse> {
+    path: "/iws.InWorkspaceService/SetupPairVeth";
+    requestStream: false;
+    responseStream: false;
+    requestSerialize: grpc.serialize<workspace_daemon_pb.SetupPairVethRequest>;
+    requestDeserialize: grpc.deserialize<workspace_daemon_pb.SetupPairVethRequest>;
+    responseSerialize: grpc.serialize<workspace_daemon_pb.SetupPairVethResponse>;
+    responseDeserialize: grpc.deserialize<workspace_daemon_pb.SetupPairVethResponse>;
+}
 
 export const InWorkspaceServiceService: IInWorkspaceServiceService;
 
@@ -108,6 +118,7 @@ export interface IInWorkspaceServiceServer extends grpc.UntypedServiceImplementa
     mountSysfs: grpc.handleUnaryCall<workspace_daemon_pb.MountProcRequest, workspace_daemon_pb.MountProcResponse>;
     umountSysfs: grpc.handleUnaryCall<workspace_daemon_pb.UmountProcRequest, workspace_daemon_pb.UmountProcResponse>;
     teardown: grpc.handleUnaryCall<workspace_daemon_pb.TeardownRequest, workspace_daemon_pb.TeardownResponse>;
+    setupPairVeth: grpc.handleUnaryCall<workspace_daemon_pb.SetupPairVethRequest, workspace_daemon_pb.SetupPairVethResponse>;
 }
 
 export interface IInWorkspaceServiceClient {
@@ -135,6 +146,9 @@ export interface IInWorkspaceServiceClient {
     teardown(request: workspace_daemon_pb.TeardownRequest, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.TeardownResponse) => void): grpc.ClientUnaryCall;
     teardown(request: workspace_daemon_pb.TeardownRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.TeardownResponse) => void): grpc.ClientUnaryCall;
     teardown(request: workspace_daemon_pb.TeardownRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.TeardownResponse) => void): grpc.ClientUnaryCall;
+    setupPairVeth(request: workspace_daemon_pb.SetupPairVethRequest, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.SetupPairVethResponse) => void): grpc.ClientUnaryCall;
+    setupPairVeth(request: workspace_daemon_pb.SetupPairVethRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.SetupPairVethResponse) => void): grpc.ClientUnaryCall;
+    setupPairVeth(request: workspace_daemon_pb.SetupPairVethRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.SetupPairVethResponse) => void): grpc.ClientUnaryCall;
 }
 
 export class InWorkspaceServiceClient extends grpc.Client implements IInWorkspaceServiceClient {
@@ -163,4 +177,7 @@ export class InWorkspaceServiceClient extends grpc.Client implements IInWorkspac
     public teardown(request: workspace_daemon_pb.TeardownRequest, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.TeardownResponse) => void): grpc.ClientUnaryCall;
     public teardown(request: workspace_daemon_pb.TeardownRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.TeardownResponse) => void): grpc.ClientUnaryCall;
     public teardown(request: workspace_daemon_pb.TeardownRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.TeardownResponse) => void): grpc.ClientUnaryCall;
+    public setupPairVeth(request: workspace_daemon_pb.SetupPairVethRequest, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.SetupPairVethResponse) => void): grpc.ClientUnaryCall;
+    public setupPairVeth(request: workspace_daemon_pb.SetupPairVethRequest, metadata: grpc.Metadata, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.SetupPairVethResponse) => void): grpc.ClientUnaryCall;
+    public setupPairVeth(request: workspace_daemon_pb.SetupPairVethRequest, metadata: grpc.Metadata, options: Partial<grpc.CallOptions>, callback: (error: grpc.ServiceError | null, response: workspace_daemon_pb.SetupPairVethResponse) => void): grpc.ClientUnaryCall;
 }
