@@ -7,7 +7,7 @@
 import moment from "moment";
 import { PrebuildWithStatus, Project } from "@gitpod/gitpod-protocol";
 import { useContext, useEffect, useState } from "react";
-import { useLocation, useRouteMatch } from "react-router";
+import { useHistory, useLocation, useRouteMatch } from "react-router";
 import Header from "../components/Header";
 import { ItemsList, Item, ItemField, ItemFieldContextMenu } from "../components/ItemsList";
 import { getGitpodService, gitpodHostUrl } from "../service/service";
@@ -21,6 +21,7 @@ import { openAuthorizeWindow } from "../provider-utils";
 
 export default function () {
     const location = useLocation();
+    const history = useHistory();
 
     const { teams } = useContext(TeamsContext);
     const team = getCurrentTeam(location, teams);
@@ -30,6 +31,7 @@ export default function () {
 
     const [project, setProject] = useState<Project | undefined>();
 
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isLoadingBranches, setIsLoadingBranches] = useState<boolean>(false);
     const [branches, setBranches] = useState<Project.BranchDetails[]>([]);
     const [lastPrebuilds, setLastPrebuilds] = useState<Map<string, PrebuildWithStatus | undefined>>(new Map());
@@ -158,11 +160,17 @@ export default function () {
         return true;
     };
 
-    const triggerPrebuild = (branch: Project.BranchDetails) => {
+    const triggerPrebuild = async (branch: Project.BranchDetails) => {
         if (!project) {
             return;
         }
-        getGitpodService().server.triggerPrebuild(project.id, branch.name);
+        try {
+            setIsLoading(true);
+            const prebuildResult = await getGitpodService().server.triggerPrebuild(project.id, branch.name);
+            history.push(`/${!!team ? "t/" + team.slug : "projects"}/${projectSlug}/${prebuildResult.prebuildId}`);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const cancelPrebuild = (prebuildId: string) => {
@@ -190,6 +198,12 @@ export default function () {
                     </h2>
                 }
             />
+            {isLoading && (
+                <div className="flex items-center justify-center space-x-2 text-gray-400 text-sm pt-16 pb-40">
+                    <img alt="" className="h-4 w-4 animate-spin" src={Spinner} />
+                    <span>Preparing prebuild ...</span>
+                </div>
+            )}
             <div className="app-container">
                 {showAuthBanner ? (
                     <div className="mt-8 rounded-xl text-gray-500 bg-gray-50 dark:bg-gray-800 flex-col">

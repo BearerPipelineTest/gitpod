@@ -105,16 +105,8 @@ export default function (props: { project?: Project; isAdminDashboard?: boolean 
     }, [prebuilds]);
 
     const prebuildContextMenu = (p: PrebuildWithStatus) => {
-        const isFailed = p.status === "aborted" || p.status === "timeout" || p.status === "failed" || !!p.error;
         const isRunning = p.status === "building";
         const entries: ContextMenuEntry[] = [];
-        if (isFailed) {
-            entries.push({
-                title: `Rerun Prebuild (${p.info.branch})`,
-                onClick: () => triggerPrebuild(p.info.branch),
-                separator: isRunning,
-            });
-        }
         if (isRunning) {
             entries.push({
                 title: "Cancel Prebuild",
