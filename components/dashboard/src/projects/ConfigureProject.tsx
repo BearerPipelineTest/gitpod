@@ -5,7 +5,7 @@
  */
 
 import React, { Suspense, useContext, useEffect, useState } from "react";
-import { Project, StartPrebuildResult, WorkspaceInstance } from "@gitpod/gitpod-protocol";
+import { PrebuildWithStatus, Project, StartPrebuildResult, WorkspaceInstance } from "@gitpod/gitpod-protocol";
 import PrebuildLogs from "../components/PrebuildLogs";
 import TabMenuItem from "../components/TabMenuItem";
 import { getGitpodService } from "../service/service";
@@ -14,7 +14,7 @@ import NoAccess from "../icons/NoAccess.svg";
 import PrebuildLogsEmpty from "../images/prebuild-logs-empty.svg";
 import PrebuildLogsEmptyDark from "../images/prebuild-logs-empty-dark.svg";
 import { ThemeContext } from "../theme-context";
-import { PrebuildInstanceStatus } from "./Prebuilds";
+import { PrebuildStatus } from "./Prebuilds";
 import { ErrorCodes } from "@gitpod/gitpod-protocol/lib/messaging/error";
 import { openAuthorizeWindow } from "../provider-utils";
 import { ProjectSettingsPage } from "./ProjectSettings";
@@ -51,6 +51,8 @@ export default function () {
     const [prebuildWasCancelled, setPrebuildWasCancelled] = useState<boolean>(false);
     const [startPrebuildResult, setStartPrebuildResult] = useState<StartPrebuildResult | undefined>();
     const [prebuildInstance, setPrebuildInstance] = useState<WorkspaceInstance | undefined>();
+    const [prebuild, setPrebuild] = useState<PrebuildWithStatus | null>(null);
+
     const { isDark } = useContext(ThemeContext);
 
     const [showAuthBanner, setShowAuthBanner] = useState<{ host: string; scope?: string } | undefined>(undefined);
@@ -98,6 +100,30 @@ export default function () {
             }
         })();
     }, [project]);
+
+    useEffect(() => {
+        console.log("Running prebuild hook", startPrebuildResult);
+        if (!startPrebuildResult?.prebuildId) {
+            return;
+        }
+        if (!project?.id) {
+            return;
+        }
+
+        const disposable = getGitpodService().registerClient({
+            onPrebuildUpdate: (update: PrebuildWithStatus) => {
+                console.log("got on prebuild update", update);
+                setPrebuild(prebuild);
+            },
+        });
+
+        (async () => {
+            const prebuilds = await getGitpodService().server.findPrebuilds({ projectId: project?.id });
+            setPrebuild(prebuilds[0]);
+        })();
+
+        return disposable.dispose;
+    }, [startPrebuildResult?.prebuildId]);
 
     const detectProjectConfiguration = async (project: Project) => {
         const guessedConfigStringPromise = getGitpodService().server.guessProjectConfiguration(project.id);
@@ -365,7 +391,7 @@ export default function () {
                         )}
                     </div>
                     <div className="h-20 px-6 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-600 flex space-x-2">
-                        {prebuildWasTriggered && <PrebuildInstanceStatus prebuildInstance={prebuildInstance} />}
+                        {prebuildWasTriggered && prebuild && <PrebuildStatus prebuild={prebuild} />}
                         <div className="flex-grow" />
                         {prebuildWasTriggered && prebuildInstance?.status.phase !== "stopped" ? (
                             <button
