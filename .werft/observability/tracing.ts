@@ -29,6 +29,10 @@ export async function initialize(): Promise<NodeSDK> {
         instrumentations: [getNodeAutoInstrumentations()]
     });
 
+    sdk.addResource(new Resource({
+        "mads.testing": "a testing value"
+    }))
+
     console.log('Initializing tracing')
     try {
         await sdk.start()
