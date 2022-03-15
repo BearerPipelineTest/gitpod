@@ -7,6 +7,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	log "github.com/gitpod-io/gitpod/common-go/log"
 	"github.com/spf13/cobra"
@@ -23,6 +24,7 @@ func Execute() {
 	log.Init("bob", "", true, false)
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
+		time.Sleep(30 * time.Second)
 		os.Exit(1)
 	}
 }
