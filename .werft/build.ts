@@ -11,16 +11,15 @@ import { coverage } from './jobs/build/coverage';
 import { deployToPreviewEnvironment } from './jobs/build/deploy-to-preview-environment';
 import { triggerIntegrationTests } from './jobs/build/trigger-integration-tests';
 import { jobConfig } from './jobs/build/job-config';
-import { NodeSDK } from '@opentelemetry/sdk-node';
 
 // Will be set once tracing has been initialized
 let werft: Werft
 const context: any = JSON.parse(fs.readFileSync('context.json').toString());
 
 Tracing.initialize()
-    .then((sdk: NodeSDK) => {
+    .then((tracing: Tracing.Tracing) => {
         werft = new Werft("build")
-        run(context, sdk)
+        run(context, tracing)
     })
     .catch((err) => {
         werft.rootSpan.setStatus({
@@ -44,8 +43,8 @@ Tracing.initialize()
         werft.endAllSpans()
     })
 
-async function run(context: any, sdk: NodeSDK) {
-    const config = jobConfig(werft, context, sdk)
+async function run(context: any, tracing: Tracing.Tracing) {
+    const config = jobConfig(werft, context, tracing)
 
     await validateChanges(werft, config)
     await prepare(werft, config)
