@@ -40,7 +40,7 @@ export class BitbucketServerContextParser extends AbstractContextParser implemen
         }
     }
 
-    public async parseURL(user: User, contextUrl: string): Promise<{ resourceKind: string } & URLParts> {
+    public async parseURL(user: User, contextUrl: string): Promise<{ resourceKind: "projects" | "users" } & URLParts> {
         const url = new URL(contextUrl);
         const pathname = url.pathname.replace(/^\//, "").replace(/\/$/, ""); // pathname without leading and trailing slash
         const segments = pathname.split("/");
@@ -55,6 +55,10 @@ export class BitbucketServerContextParser extends AbstractContextParser implemen
         }
 
         const resourceKind = segments[0];
+        if (resourceKind !== "projects" && resourceKind !== "users") {
+            throw new Error("Unexpected resource: " + resourceKind);
+        }
+
         const owner: string = segments[1];
         const repoName: string = segments[3];
         const moreSegmentsStart: number = 4;
@@ -95,12 +99,12 @@ export class BitbucketServerContextParser extends AbstractContextParser implemen
                 throw new Error("Only /users/ and /projects/ resources are supported.");
             }
             const repo = await this.api.getRepository(user, {
-                kind: resourceKind,
+                resourceKind,
                 userOrProject: owner,
                 repositorySlug: repoName,
             });
             const defaultBranch = await this.api.getDefaultBranch(user, {
-                kind: resourceKind,
+                resourceKind,
                 userOrProject: owner,
                 repositorySlug: repoName,
             });
@@ -124,7 +128,7 @@ export class BitbucketServerContextParser extends AbstractContextParser implemen
 
             if (!more.revision) {
                 const tipCommitOnDefaultBranch = await this.api.getCommits(user, {
-                    kind: resourceKind,
+                    resourceKind,
                     userOrProject: owner,
                     repositorySlug: repoName,
                     q: { limit: 1 },
@@ -168,8 +172,10 @@ export class BitbucketServerContextParser extends AbstractContextParser implemen
         const owner = repo.project.owner ? repo.project.owner.slug : repo.project.key;
         const name = repo.name;
         const cloneUrl = repo.links.clone.find((u) => u.name === "http")?.href!;
+        const webUrl = repo.links?.self[0]?.href?.replace("/browse", "");
 
         const result: Repository = {
+            webUrl,
             cloneUrl,
             host,
             name,

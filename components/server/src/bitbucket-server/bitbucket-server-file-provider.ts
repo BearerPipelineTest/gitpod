@@ -5,18 +5,19 @@
  */
 
 import { Commit, Repository, User } from "@gitpod/gitpod-protocol";
-import { injectable } from "inversify";
+import { inject, injectable } from "inversify";
 import { FileProvider, MaybeContent } from "../repohost/file-provider";
+import { BitbucketServerApi } from "./bitbucket-server-api";
+import { BitbucketServerContextParser } from "./bitbucket-server-context-parser";
 
 @injectable()
 export class BitbucketServerFileProvider implements FileProvider {
+
+    @inject(BitbucketServerApi) protected api: BitbucketServerApi;
+    @inject(BitbucketServerContextParser) protected contextParser: BitbucketServerContextParser;
+
     public async getGitpodFileContent(commit: Commit, user: User): Promise<MaybeContent> {
-        return undefined;
-        // const yamlVersion1 = await Promise.all([
-        //     this.getFileContent(commit, user, '.gitpod.yml'),
-        //     this.getFileContent(commit, user, '.gitpod')
-        // ]);
-        // return yamlVersion1.filter(f => !!f)[0];
+        return this.getFileContent(commit, user, '.gitpod.yml')
     }
 
     public async getLastChangeRevision(
@@ -37,17 +38,17 @@ export class BitbucketServerFileProvider implements FileProvider {
     }
 
     public async getFileContent(commit: Commit, user: User, path: string) {
-        return undefined;
-        // if (!commit.revision) {
-        //     return undefined;
-        // }
+        if (!commit.revision || !commit.repository.webUrl) {
+            return undefined;
+        }
 
-        // try {
-        //     const api = await this.apiFactory.create(user);
-        //     const contents = (await api.repositories.readSrc({ workspace: commit.repository.owner, repo_slug: commit.repository.name, commit: commit.revision, path })).data;
-        //     return contents as string;
-        // } catch (err) {
-        //     log.error({ userId: user.id }, err);
-        // }
+        const { owner, repoName, resourceKind } = await this.contextParser.parseURL(user, commit.repository.webUrl);
+
+        try {
+            const result = await this.api.fetchContent(user, `/${resourceKind}/${owner}/repos/${repoName}/raw/${path}`);
+            return result;
+        } catch (err) {
+            console.error({ userId: user.id }, err);
+        }
     }
 }

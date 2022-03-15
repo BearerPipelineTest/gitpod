@@ -15,57 +15,83 @@ export class BitbucketServerApi {
     @inject(AuthProviderParams) protected readonly config: AuthProviderParams;
     @inject(BitbucketServerTokenHelper) protected readonly tokenHelper: BitbucketServerTokenHelper;
 
-    public async runQuery<T>(user: User, urlPath: string): Promise<T> {
+    public async runQuery<T>(user: User, urlPath: string, method: string = "GET", body?: string): Promise<T> {
         const token = (await this.tokenHelper.getTokenWithScopes(user, [])).value;
         const fullUrl = `${this.baseUrl}${urlPath}`;
-        const response = await fetch(fullUrl, {
-            timeout: 10000,
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        if (!response.ok) {
-            throw Error(response.statusText);
+        let result: string = 'OK';
+        try {
+            const response = await fetch(fullUrl, {
+                timeout: 10000,
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body
+            });
+
+            if (!response.ok) {
+                throw Error(`${response.status} / ${response.statusText}`);
+            }
+            const result = await response.json();
+            return result as T;
+        } catch (error) {
+            result = "error " + (error?.message)
+            throw error;
+        } finally {
+            console.debug(`BBS GET ${fullUrl} – ${result}`)
         }
-        const result = await response.json();
-        return result as T;
+    }
+
+    public async fetchContent(user: User, urlPath: string): Promise<string> {
+        const token = (await this.tokenHelper.getTokenWithScopes(user, [])).value;
+        const fullUrl = `${this.baseUrl}${urlPath}`;
+        let result: string = 'OK';
+        try {
+            const response = await fetch(fullUrl, {
+                timeout: 10000,
+                method: "GET",
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw Error(`${response.status} / ${response.statusText}`);
+            }
+            return await response.text();
+        } catch (error) {
+            result = "error " + (error?.message)
+            throw error;
+        } finally {
+            console.debug(`BBS GET ${fullUrl} – ${result}`)
+        }
     }
 
     protected get baseUrl(): string {
         return `https://${this.config.host}/rest/api/1.0`;
     }
 
-    getRepository(
-        user: User,
-        params: { kind: "projects" | "users"; userOrProject: string; repositorySlug: string },
-    ): Promise<BitbucketServer.Repository> {
-        return this.runQuery<BitbucketServer.Repository>(
-            user,
-            `/${params.kind}/${params.userOrProject}/repos/${params.repositorySlug}`,
-        );
+    getRepository(user: User, params: { resourceKind: "projects" | "users", userOrProject: string; repositorySlug: string; }): Promise<BitbucketServer.Repository> {
+        return this.runQuery<BitbucketServer.Repository>(user, `/${params.resourceKind}/${params.userOrProject}/repos/${params.repositorySlug}`);
     }
 
-    getCommits(
-        user: User,
-        params: { kind: "projects" | "users"; userOrProject: string; repositorySlug: string; q?: { limit: number } },
-    ): Promise<BitbucketServer.Paginated<BitbucketServer.Commit>> {
-        return this.runQuery<BitbucketServer.Paginated<BitbucketServer.Commit>>(
-            user,
-            `/${params.kind}/${params.userOrProject}/repos/${params.repositorySlug}/commits`,
-        );
+    getCommits(user: User, params: { resourceKind: "projects" | "users", userOrProject: string, repositorySlug: string, q?: { limit: number } }): Promise<BitbucketServer.Paginated<BitbucketServer.Commit>> {
+        return this.runQuery<BitbucketServer.Paginated<BitbucketServer.Commit>>(user, `/${params.resourceKind}/${params.userOrProject}/repos/${params.repositorySlug}/commits`);
     }
 
-    getDefaultBranch(
-        user: User,
-        params: { kind: "projects" | "users"; userOrProject: string; repositorySlug: string },
-    ): Promise<BitbucketServer.Branch> {
+    getDefaultBranch(user: User, params: { resourceKind: "projects" | "users", userOrProject: string, repositorySlug: string }): Promise<BitbucketServer.Branch> {
         //https://bitbucket.gitpod-self-hosted.com/rest/api/1.0/users/jldec/repos/test-repo/default-branch
-        return this.runQuery<BitbucketServer.Branch>(
-            user,
-            `/${params.kind}/${params.userOrProject}/repos/${params.repositorySlug}/default-branch`,
-        );
+        return this.runQuery<BitbucketServer.Branch>(user, `/${params.resourceKind}/${params.userOrProject}/repos/${params.repositorySlug}/default-branch`);
+    }
+
+    getWebhooks(user: User, params: { resourceKind: "projects" | "users", userOrProject: string, repositorySlug: string }): Promise<BitbucketServer.Paginated<BitbucketServer.Webhook>> {
+        return this.runQuery<BitbucketServer.Paginated<BitbucketServer.Webhook>>(user, `/${params.resourceKind}/${params.userOrProject}/repos/${params.repositorySlug}/webhooks`);
+    }
+
+    setWebhook(user: User, params: { resourceKind: "projects" | "users", userOrProject: string, repositorySlug: string }, webhook: BitbucketServer.WebhookParams) {
+        const body = JSON.stringify(webhook);
+        return this.runQuery<any>(user, `/${params.resourceKind}/${params.userOrProject}/repos/${params.repositorySlug}/webhooks`, "POST", body)
     }
 }
 
@@ -79,6 +105,9 @@ export namespace BitbucketServer {
             clone: {
                 href: string;
                 name: string;
+            }[];
+            self: {
+                href: string;
             }[];
         };
         project: Project;
@@ -131,4 +160,35 @@ export namespace BitbucketServer {
         values?: T[];
         [k: string]: any;
     }
+
+    export interface Webhook {
+        "id": number,
+        "name": "test-webhook",
+        "createdDate": number,
+        "updatedDate": number,
+        "events": any,
+        "configuration": any,
+        "url": string,
+        "active": boolean
+    }
+
+    export interface PermissionEntry {
+        "user": User,
+        "permission": string
+    }
+
+    export interface WebhookParams {
+        "name": string,
+        "events": string[],
+        // "events": [
+        //     "repo:refs_changed",
+        //     "repo:modified"
+        // ],
+        "configuration": {
+            "secret": string
+        },
+        "url": string,
+        "active": boolean
+    }
+
 }
