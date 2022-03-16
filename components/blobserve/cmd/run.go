@@ -5,13 +5,17 @@
 package cmd
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
+	"time"
 
 	"github.com/gitpod-io/gitpod/blobserve/pkg/config"
+	"github.com/heptiolabs/healthcheck"
 
 	"github.com/containerd/containerd/remotes"
 	"github.com/containerd/containerd/remotes/docker"
@@ -22,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/gitpod-io/gitpod/blobserve/pkg/blobserve"
+	"github.com/gitpod-io/gitpod/common-go/kubernetes"
 	"github.com/gitpod-io/gitpod/common-go/log"
 	"github.com/gitpod-io/gitpod/common-go/pprof"
 )
@@ -98,6 +103,31 @@ var runCmd = &cobra.Command{
 				}
 			}()
 			log.WithField("addr", cfg.PrometheusAddr).Info("started Prometheus metrics server")
+		}
+
+		if cfg.ReadinessProbeAddr != "" {
+			// use the first layer as source for the tests
+			if len(cfg.BlobServe.Repos) < 1 {
+				log.Panic("the configuration file do not contain static layers")
+			}
+
+			var repository string
+			for k := range cfg.BlobServe.Repos {
+				repository = k
+			}
+			staticLayerHost := strings.Split(repository, "/")[0]
+			// Ensure we can resolve DNS queries, can access gcr.io and the local Registry is up and running
+			health := healthcheck.NewHandler()
+			health.AddReadinessCheck("dns", kubernetes.DNSCanResolveProbe(staticLayerHost, 1*time.Second))
+			health.AddReadinessCheck("registry", kubernetes.NetworkIsReachableProbe(fmt.Sprintf("http://%v", repository)))
+			health.AddLivenessCheck("dns", kubernetes.DNSCanResolveProbe(staticLayerHost, 1*time.Second))
+			health.AddLivenessCheck("registry", kubernetes.NetworkIsReachableProbe(fmt.Sprintf("http://%v", repository)))
+
+			go func() {
+				if err := http.ListenAndServe(cfg.ReadinessProbeAddr, health); err != nil && err != http.ErrServerClosed {
+					log.WithError(err).Panic("error starting HTTP server")
+				}
+			}()
 		}
 
 		log.Info("🏪 blobserve is up and running")
