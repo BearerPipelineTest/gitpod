@@ -46,7 +46,6 @@ const scheme = {
                             hidden: { type: "boolean" },
                             image: { type: "string" },
                             latestImage: { type: "string" },
-                            resolveImageDigest: { type: "boolean" },
                         },
                         required: ["title", "type", "logo", "image"],
                     },
