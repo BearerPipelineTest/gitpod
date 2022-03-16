@@ -33,6 +33,17 @@ const DesktopNone: IDEOption = {
 
 export default function Preferences() {
     const { user } = useContext(UserContext);
+
+    // Compatible with old configurations
+    // TODO: delete this if db all updated
+    if (user?.additionalData?.ideSettings?.defaultIde === "code-latest") {
+        user.additionalData.ideSettings.defaultIde = "code";
+        user.additionalData.ideSettings.useLatestVersion = true;
+    }
+    if (user?.additionalData?.ideSettings?.defaultDesktopIde === "code-desktop-insiders") {
+        user.additionalData.ideSettings.defaultDesktopIde = "code-desktop";
+        user.additionalData.ideSettings.useLatestVersion = true;
+    }
     const { setIsDark, isDark } = useContext(ThemeContext);
 
     const updateUserIDEInfo = async (defaultDesktopIde: string, defaultIde: string, useLatestVersion: boolean) => {

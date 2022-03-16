@@ -529,6 +529,17 @@ export class WorkspaceStarter {
             supervisorImage: ideConfig.supervisorImage,
         };
 
+        // Compatible with old configurations
+        // TODO: delete this if db all updated
+        if (user?.additionalData?.ideSettings?.defaultIde === "code-latest") {
+            user.additionalData.ideSettings.defaultIde = "code";
+            user.additionalData.ideSettings.useLatestVersion = true;
+        }
+        if (user?.additionalData?.ideSettings?.defaultDesktopIde === "code-desktop-insiders") {
+            user.additionalData.ideSettings.defaultDesktopIde = "code-desktop";
+            user.additionalData.ideSettings.useLatestVersion = true;
+        }
+
         const ideChoice = user.additionalData?.ideSettings?.defaultIde;
         if (!!ideChoice) {
             const mappedImage = ideConfig.ideOptions.options[ideChoice];
